@@ -54,6 +54,33 @@ router.post('/checkout', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/v1/subscriptions/current - Get current subscription status
+router.get('/current', async (req: Request, res: Response) => {
+  const clerkId = req.auth.userId;
+
+  if (!clerkId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { clerkId },
+      include: {
+        subscription: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user.subscription ?? null);
+  } catch (error) {
+    console.error('Error fetching current subscription:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 // Webhook handler (separate from the router to handle raw body)
 export const handleStripeWebhook = async (req: any, res: Response) => {
   const sig = req.headers['stripe-signature'];

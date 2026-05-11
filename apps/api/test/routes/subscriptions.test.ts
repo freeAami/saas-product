@@ -82,3 +82,51 @@ describe('POST /api/v1/subscriptions/checkout', () => {
     expect(response.status).toBe(400);
   });
 });
+
+describe('GET /api/v1/subscriptions/current', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should return 401 if user is not authenticated', async () => {
+    const response = await request(app).get('/api/v1/subscriptions/current');
+    expect(response.status).toBe(401);
+  });
+
+  it('should return 200 and subscription data if authenticated', async () => {
+    const mockSubscription = {
+      id: 'sub_1',
+      status: 'active',
+      planId: 'price_123',
+    };
+    const mockUser = {
+      id: 'user_1',
+      clerkId: 'user_test_clerk_id',
+      subscription: mockSubscription,
+    };
+    (prisma.user.findUnique as any).mockResolvedValue(mockUser);
+
+    const response = await request(app)
+      .get('/api/v1/subscriptions/current')
+      .set('Authorization', 'Bearer valid_test_token');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(mockSubscription);
+  });
+
+  it('should return 200 and null if user has no subscription', async () => {
+    const mockUser = {
+      id: 'user_1',
+      clerkId: 'user_test_clerk_id',
+      subscription: null,
+    };
+    (prisma.user.findUnique as any).mockResolvedValue(mockUser);
+
+    const response = await request(app)
+      .get('/api/v1/subscriptions/current')
+      .set('Authorization', 'Bearer valid_test_token');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toBeNull();
+  });
+});
